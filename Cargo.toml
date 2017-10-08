@@ -2,5 +2,11 @@
 name = "joseki"
 version = "0.1.0"
 authors = ["Kevin Yap <me@kevinyap.ca>"]
+description = "Go/Baduk engine."
+keywords = ["go", "baduk"]
+homepage = "https://github.com/iKevinY/joseki"
+repository = "https://github.com/iKevinY/joseki"
+readme = "README.md"
+license = "MIT"
 
 [dependencies]
