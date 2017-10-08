@@ -34,9 +34,13 @@ pub struct Board {
 
 impl Board {
     pub fn new() -> Board {
+        Self::with_size(BOARD_SIZE)
+    }
+
+    pub fn with_size(size: usize) -> Board {
         Board {
-            state: vec![Stone::Empty; BOARD_SIZE * BOARD_SIZE],
-            size: BOARD_SIZE,
+            state: vec![Stone::Empty; size * size],
+            size,
         }
     }
 

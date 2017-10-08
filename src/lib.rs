@@ -1,3 +1,6 @@
-mod board;
+extern crate regex;
 
-pub use board::{Board, Stone};
+mod board;
+mod game;
+
+pub use game::Game;
