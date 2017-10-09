@@ -10,6 +10,6 @@ fn main() {
     if args.len() <= 1 {
         eprintln!("Usage: joseki <filename>");
     } else {
-        println!("{}", Game::from_file(&args[1]));
+        println!("{}", Game::from_sgf(&args[1]));
     }
 }

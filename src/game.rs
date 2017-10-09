@@ -30,7 +30,7 @@ impl Game {
         }
     }
 
-    pub fn from_file(filename: &str) -> Game {
+    pub fn from_sgf(filename: &str) -> Game {
         let mut f = File::open(filename).unwrap();
         let mut contents = String::new();
         f.read_to_string(&mut contents).unwrap();
