@@ -22,6 +22,14 @@ impl Game {
         }
     }
 
+    pub fn from_str(board: &str) -> Game {
+        Game {
+            board: Board::from_str(board),
+            black_player: None,
+            white_player: None,
+        }
+    }
+
     pub fn from_file(filename: &str) -> Game {
         let mut f = File::open(filename).unwrap();
         let mut contents = String::new();

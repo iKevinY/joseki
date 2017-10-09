@@ -1,7 +1,7 @@
 use std::fmt;
 use std::ops::{Index, IndexMut};
 
-const BOARD_SIZE: usize = 19;
+const DEFAULT_BOARD_SIZE: usize = 19;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Stone {
@@ -29,12 +29,12 @@ impl fmt::Display for Stone {
 #[derive(Clone, Debug)]
 pub struct Board {
     state: Vec<Stone>,
-    size: usize,
+    pub size: usize,
 }
 
 impl Board {
     pub fn new() -> Board {
-        Self::with_size(BOARD_SIZE)
+        Self::with_size(DEFAULT_BOARD_SIZE)
     }
 
     pub fn with_size(size: usize) -> Board {
@@ -42,6 +42,21 @@ impl Board {
             state: vec![Stone::Empty; size * size],
             size,
         }
+    }
+
+    pub fn from_str(board: &str) -> Board {
+        let state: Vec<_> = board.chars()
+            .filter(|c| !c.is_whitespace())
+            .map(|c| match c {
+                'B' | 'X' | 'x' | '#' => Stone::Black,
+                'W' | 'O' | 'o' | '0' => Stone::White,
+                _ => Stone::Empty,
+            })
+            .collect();
+
+        let size = (state.len() as f64).sqrt() as usize;
+
+        Board { state, size }
     }
 
     /// Returns true if (x, y) is a star point (hoshi) based on the current board size.
@@ -103,17 +118,26 @@ impl fmt::Display for Board {
 
 #[cfg(test)]
 mod tests {
-    use super::{Board, Stone, BOARD_SIZE};
+    use super::{Board, Stone};
 
     #[test]
     fn empty_board() {
         let board = Board::new();
 
-        for y in 0..BOARD_SIZE {
-            for x in 0..BOARD_SIZE {
+        for y in 0..board.size {
+            for x in 0..board.size {
                 assert_eq!(board[(x, y)], Stone::Empty);
             }
         }
+    }
+
+    #[test]
+    fn board_from_str() {
+        let board = Board::from_str("BWBW.WBWB");
+        assert_eq!(board.size, 3);
+        assert_eq!(board[(0, 0)], Stone::Black);
+        assert_eq!(board[(1, 0)], Stone::White);
+        assert_eq!(board[(1, 1)], Stone::Empty);
     }
 
     #[test]
