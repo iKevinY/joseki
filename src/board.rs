@@ -107,7 +107,7 @@ impl Board {
     }
 
     /// Places `stone` at `(x, y)`, returning true if it was successful. Handles captures.
-    fn make_move(&mut self, stone: Stone, x: usize, y: usize) -> bool {
+    pub fn make_move(&mut self, stone: Stone, x: usize, y: usize) -> bool {
         if self[(x, y)] != Stone::Empty {
             return false;
         } else if stone == Stone::Empty {
