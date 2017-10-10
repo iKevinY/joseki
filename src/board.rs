@@ -20,6 +20,14 @@ impl Stone {
             Stone::White => '○', // U+25CB WHITE CIRCLE
         }
     }
+
+    fn not(&self) -> Stone {
+        match *self {
+            Stone::Empty => Stone::Empty,
+            Stone::Black => Stone::White,
+            Stone::White => Stone::Black,
+        }
+    }
 }
 
 impl fmt::Display for Stone {
@@ -27,6 +35,7 @@ impl fmt::Display for Stone {
         write!(f, "{}", self.char())
     }
 }
+
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Board {
@@ -65,7 +74,7 @@ impl Board {
     }
 
     /// Returns true if placing `stone` at `x, y` is a valid play.
-    fn legal_move(&self, stone: Stone, x: usize, y: usize) -> bool {
+    fn legal_move(&mut self, stone: Stone, x: usize, y: usize) -> bool {
         if stone == Stone::Empty {
             return false;
         } else if self[(x, y)] != Stone::Empty {
@@ -74,7 +83,58 @@ impl Board {
             return false;
         }
 
-        // TODO: Handle ko rule and self-captures
+        // See if placing stone would cause a capture (perform before self-capture check).
+        for (nx, ny) in self.neighbours(x, y) {
+            if self[(nx, ny)] == stone.not() {
+                let liberties = self.liberties(nx, ny);
+                if liberties.len() == 1 && *liberties.iter().next().unwrap() == (x, y) {
+                    return true;
+                }
+            }
+        }
+
+        // Prevent self-capture by simulating placing a stone at `(x, y)` and checking liberties.
+        self[(x, y)] = stone;
+        let liberties = self.liberties(x, y);
+        self[(x, y)] = Stone::Empty;
+
+        if liberties.len() == 0 {
+            return false;
+        }
+
+        // TODO: Handle ko rule after implementing move history.
+        true
+    }
+
+    /// Places `stone` at `(x, y)`, returning true if it was successful. Handles captures.
+    fn make_move(&mut self, stone: Stone, x: usize, y: usize) -> bool {
+        if self[(x, y)] != Stone::Empty {
+            return false;
+        } else if stone == Stone::Empty {
+            return false;
+        } else if !self.legal_move(stone, x, y) {
+            return false;
+        }
+
+        let opposing_stone = stone.not();
+
+        for (nx, ny) in self.neighbours(x, y) {
+            if self[(nx, ny)] == opposing_stone {
+                // If the chain that `(nx, ny)` is a part of only has a single liberty at point
+                // `(x, y)`, then the entire chain will be captured by making this move.
+                let liberties = self.liberties(nx, ny);
+
+                if liberties.len() == 1 && *liberties.iter().next().unwrap() == (x, y) {
+                    for (cx, cy) in self.connected_stones(nx, ny) {
+                        self[(cx, cy)] = Stone::Empty;
+                    }
+                }
+            }
+        }
+
+        // Finally, place the stone at `(x, y`).
+        self[(x, y)] = stone;
+
         true
     }
 
@@ -319,5 +379,130 @@ mod tests {
         let expected_2 = HashSet::from_iter(vec![(2, 2), (2, 4), (4, 2)]);
         assert_eq!(chain_2, board.liberties(4, 4));
         assert_eq!(chain_2, expected_2)
+    }
+
+    #[test]
+    fn no_capture() {
+        let mut board = Board::from_str("\
+            .!. \
+            #.# \
+            .#.");
+
+        let expected = Board::from_str("\
+            .#. \
+            #.# \
+            .#.");
+
+        assert!(board.make_move(Stone::Black, 1, 0));
+        assert_eq!(board, expected);
+    }
+
+    #[test]
+    fn simple_capture() {
+        let mut board = Board::from_str("\
+            .!. \
+            #O# \
+            .#.");
+
+        let expected = Board::from_str("\
+            .#. \
+            #.# \
+            .#.");
+
+        assert!(board.make_move(Stone::Black, 1, 0));
+        assert_eq!(board, expected);
+    }
+
+    #[test]
+    fn capture_against_corner() {
+        let mut board = Board::from_str("\
+            OO#.. \
+            O#... \
+            !.... \
+            ..... \
+            .....");
+
+        let expected = Board::from_str("\
+            ..#.. \
+            .#... \
+            #.... \
+            ..... \
+            .....");
+
+        assert!(board.make_move(Stone::Black, 0, 2));
+        assert_eq!(board, expected);
+    }
+
+    #[test]
+    fn another_capture() {
+        let mut board = Board::from_str("\
+            ...#. \
+            #OO#O \
+            !##O. \
+            #OO.. \
+            .....");
+
+        let expected = Board::from_str("\
+            ...#. \
+            #OO#O \
+            O..O. \
+            #OO.. \
+            .....");
+
+        assert!(board.make_move(Stone::White, 0, 2));
+        assert_eq!(board, expected);
+    }
+
+    #[test]
+    fn double_capture() {
+        let mut board = Board::from_str("\
+            .#OOO \
+            ..!O# \
+            .#O#. \
+            .O##. \
+            .....");
+
+        let expected = Board::from_str("\
+            .#... \
+            ..#.# \
+            .#.#. \
+            .O##. \
+            .....");
+
+        assert!(board.make_move(Stone::Black, 2, 1));
+        assert_eq!(board, expected);
+    }
+
+    #[test]
+    fn prevent_self_capture() {
+        let mut board = Board::from_str("\
+            .#. \
+            #!# \
+            .#.");
+
+        let expected = board.clone();
+
+        assert!(!board.make_move(Stone::White, 1, 1));
+        assert_eq!(board, expected);
+    }
+
+    #[test]
+    fn allow_temporary_self_capture() {
+        let mut board = Board::from_str("\
+            ###O. \
+            #!#O. \
+            ###O. \
+            OOO.. \
+            .....");
+
+        let expected = Board::from_str("\
+            ...O. \
+            .O.O. \
+            ...O. \
+            OOO.. \
+            .....");
+
+        assert!(board.make_move(Stone::White, 1, 1));
+        assert_eq!(board, expected);
     }
 }
