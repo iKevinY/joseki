@@ -73,7 +73,8 @@ impl Board {
         Board { state, size }
     }
 
-    /// Returns true if placing `stone` at `x, y` is a valid play.
+    /// Returns true if placing `stone` at `x, y` is a valid play. The ko rule is handled at the
+    /// `Game` level, since `Board` doesn't store previous state.
     fn legal_move(&mut self, stone: Stone, x: usize, y: usize) -> bool {
         if stone == Stone::Empty {
             return false;
@@ -102,7 +103,6 @@ impl Board {
             return false;
         }
 
-        // TODO: Handle ko rule after implementing move history.
         true
     }
 
@@ -132,7 +132,7 @@ impl Board {
             }
         }
 
-        // Finally, place the stone at `(x, y`).
+        // Finally, place the stone at `(x, y)`.
         self[(x, y)] = stone;
 
         true
@@ -398,6 +398,17 @@ mod tests {
     }
 
     #[test]
+    fn invalid_move() {
+        let mut board = Board::from_str("\
+            ... \
+            .B. \
+            ...");
+
+        assert!(!board.make_move(Stone::Black, 1, 1));
+        assert!(!board.make_move(Stone::White, 1, 1));
+    }
+
+    #[test]
     fn simple_capture() {
         let mut board = Board::from_str("\
             .!. \
@@ -483,6 +494,21 @@ mod tests {
         let expected = board.clone();
 
         assert!(!board.make_move(Stone::White, 1, 1));
+        assert_eq!(board, expected);
+    }
+
+    #[test]
+    fn prevent_complex_self_capture() {
+        let mut board = Board::from_str("\
+            ..O.. \
+            ..#.. \
+            .#OOO \
+            .O#!O \
+            #.O##");
+
+        let expected = board.clone();
+
+        assert!(!board.make_move(Stone::Black, 3, 3));
         assert_eq!(board, expected);
     }
 
