@@ -1,6 +1,7 @@
 use std::fmt;
 use std::fs::File;
 use std::io::Read;
+use std::path::Path;
 
 use regex::Regex;
 
@@ -15,6 +16,7 @@ pub struct Game {
 }
 
 impl Game {
+    /// Creates a new game with an empty board state.
     pub fn new() -> Game {
         Game {
             board: Board::new(),
@@ -24,6 +26,7 @@ impl Game {
         }
     }
 
+    /// Creates a new game from a string representation of the board state.
     pub fn from_str(board: &str) -> Game {
         Game {
             board: Board::from_str(board),
@@ -33,8 +36,9 @@ impl Game {
         }
     }
 
-    pub fn from_sgf(filename: &str) -> Game {
-        let mut f = File::open(filename).unwrap();
+    /// Creates a game from a given SGF file.
+    pub fn from_sgf<P: AsRef<Path>>(path: P) -> Game {
+        let mut f = File::open(path).expect("invalid path");
         let mut contents = String::new();
         f.read_to_string(&mut contents).unwrap();
 
@@ -46,13 +50,21 @@ impl Game {
             let val = &cap[2].to_string();
 
             match &cap[1] {
-                "B" | "AB" => {
+                "B" | "AB" | "W" | "AW" => {
                     let (x, y) = Self::alpha_to_xy(val);
-                    game.board[(x, y)] = Stone::Black;
-                }
-                "W" | "AW" => {
-                    let (x, y) = Self::alpha_to_xy(val);
-                    game.board[(x, y)] = Stone::White;
+
+                    let stone = match &cap[1] {
+                        "B" | "AB" => Stone::Black,
+                        "W" | "AW" => Stone::White,
+                        _ => Stone::Empty,
+                    };
+
+                    // Manually assign stone to position for "add stone" instructions, otherwise
+                    // use `game.make_move` to make the move (which takes into account captures).
+                    match &cap[1] {
+                        "AB" | "AW" => { game.board[(x, y)] = stone },
+                        _ => { game.make_move(stone, x, y); },
+                    }
                 }
                 "PB" => {
                     game.black_player = Some(val.to_string());

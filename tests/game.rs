@@ -9,4 +9,5 @@ fn read_game() {
 
     assert!(game_str.contains("White Player: Lee Sedol"));
     assert!(game_str.contains("● ● ● ○ ○ ● ○ ⋅ ○ ○ ● ● ● ○ ● ⋅ ● ○ ⋅"));
+    assert!(game_str.contains("⋅ ○ ⋅ ○ ● ○ ⋅ ○ ⋅ ○ ⋅ ⋅ ● ⋅ ● • ○ ⋅ ⋅"));
 }
