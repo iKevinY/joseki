@@ -226,6 +226,12 @@ impl Board {
     }
 }
 
+impl Default for Board {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Index<(usize, usize)> for Board {
     type Output = Stone;
 

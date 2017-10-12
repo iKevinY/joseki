@@ -7,32 +7,31 @@ use regex::Regex;
 
 use board::{Board, Stone};
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq)]
+struct Player {
+    name: Option<String>,
+    rank: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct Game {
     board: Board,
     last_board: Option<Board>,
-    black_player: Option<String>,
-    white_player: Option<String>,
+    black: Player,
+    white: Player,
 }
 
 impl Game {
     /// Creates a new game with an empty board state.
     pub fn new() -> Game {
-        Game {
-            board: Board::new(),
-            last_board: None,
-            black_player: None,
-            white_player: None,
-        }
+        Game { ..Default::default() }
     }
 
     /// Creates a new game from a string representation of the board state.
     pub fn from_str(board: &str) -> Game {
         Game {
             board: Board::from_str(board),
-            last_board: None,
-            black_player: None,
-            white_player: None,
+            ..Default::default()
         }
     }
 
@@ -49,6 +48,7 @@ impl Game {
             AddStone(Stone),
             Move(Stone),
             PlayerName(Stone),
+            PlayerRank(Stone),
             Unknown,
         }
 
@@ -64,7 +64,9 @@ impl Game {
                 "AW" => SGF::AddStone(Stone::White),
                 "PB" => SGF::PlayerName(Stone::Black),
                 "PW" => SGF::PlayerName(Stone::White),
-                _ => SGF::Unknown,
+                "BR" => SGF::PlayerRank(Stone::Black),
+                "WR" => SGF::PlayerRank(Stone::White),
+                _    => SGF::Unknown,
             };
 
             (property, cap[2].to_string())
@@ -72,22 +74,29 @@ impl Game {
 
         for (prop, val) in properties {
             match prop {
-                // Use `Game::make_move` to take into account captures.
                 SGF::Move(stone) => {
+                    // Use `Game::make_move` to take into account captures.
                     let (x, y) = Self::alpha_to_xy(&val);
                     game.make_move(stone, x, y);
                 },
-                // Manually assign stone to position.
                 SGF::AddStone(stone) => {
+                    // Manually assign stone to position.
                     game.board[Self::alpha_to_xy(&val)] = stone;
                 },
                 SGF::PlayerName(stone) => {
                     if stone == Stone::Black {
-                        game.black_player = Some(val);
+                        game.black.name = Some(val);
                     } else {
-                        game.white_player = Some(val);
+                        game.white.name = Some(val);
                     }
                 },
+                SGF::PlayerRank(stone) => {
+                    if stone == Stone::Black {
+                        game.black.rank = Some(val);
+                    } else {
+                        game.white.rank = Some(val);
+                    }
+                }
                 _ => {},
             }
         }
@@ -130,8 +139,8 @@ impl fmt::Display for Game {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let unknown = String::from("<unknown>");
 
-        let black_player = self.clone().black_player.unwrap_or(unknown.clone());
-        let white_player = self.clone().white_player.unwrap_or(unknown.clone());
+        let black_player = self.black.name.as_ref().unwrap_or(&unknown);
+        let white_player = self.white.name.as_ref().unwrap_or(&unknown);
 
         writeln!(f, "Black Player: {}", black_player)?;
         writeln!(f, "White Player: {}", white_player)?;
@@ -147,8 +156,8 @@ mod tests {
     #[test]
     fn new_game() {
         let game = Game::new();
-        assert_eq!(game.black_player, None);
-        assert_eq!(game.white_player, None);
+        assert_eq!(game.black.name, None);
+        assert_eq!(game.white.name, None);
     }
 
     #[test]
