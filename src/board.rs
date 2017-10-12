@@ -125,7 +125,7 @@ impl Board {
                 let liberties = self.liberties(nx, ny);
 
                 if liberties.len() == 1 && *liberties.iter().next().unwrap() == (x, y) {
-                    for (cx, cy) in self.connected_stones(nx, ny) {
+                    for (cx, cy) in self.chain_at(nx, ny) {
                         self[(cx, cy)] = Stone::Empty;
                     }
                 }
@@ -151,7 +151,7 @@ impl Board {
     }
 
     /// Returns the set of all positions connected to the stone at `(x, y)`.
-    fn connected_stones(&self, x: usize, y: usize) -> HashSet<(usize, usize)> {
+    fn chain_at(&self, x: usize, y: usize) -> HashSet<(usize, usize)> {
         let mut seen = HashSet::new();
         let stone = self[(x, y)];
 
@@ -347,18 +347,18 @@ mod tests {
             O.O#O \
             .#OO.");
 
-        assert_eq!(board.connected_stones(0, 0).len(), 0);
+        assert_eq!(board.chain_at(0, 0).len(), 0);
 
-        let chain_1 = board.connected_stones(0, 1);
+        let chain_1 = board.chain_at(0, 1);
         assert_eq!(chain_1.len(), 3);
-        assert_eq!(chain_1, board.connected_stones(1, 1));
-        assert_eq!(chain_1, board.connected_stones(1, 0));
+        assert_eq!(chain_1, board.chain_at(1, 1));
+        assert_eq!(chain_1, board.chain_at(1, 0));
 
-        let chain_2 = board.connected_stones(2, 2);
+        let chain_2 = board.chain_at(2, 2);
         assert_eq!(chain_2.len(), 4);
-        assert_eq!(chain_2, board.connected_stones(2, 3));
-        assert_eq!(chain_2, board.connected_stones(2, 4));
-        assert_eq!(chain_2, board.connected_stones(3, 4));
+        assert_eq!(chain_2, board.chain_at(2, 3));
+        assert_eq!(chain_2, board.chain_at(2, 4));
+        assert_eq!(chain_2, board.chain_at(3, 4));
     }
 
     #[test]
