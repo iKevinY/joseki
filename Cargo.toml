@@ -9,6 +9,9 @@ repository = "https://github.com/iKevinY/joseki"
 readme = "README.md"
 license = "MIT"
 
+[badges]
+travis-ci = { repository = "iKevinY/joseki" }
+
 [[bin]]
 name = "joseki"
 path = "src/main.rs"
