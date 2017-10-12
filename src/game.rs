@@ -44,35 +44,51 @@ impl Game {
 
         let mut game = Game::new();
 
+        // Enum containing various SGF properties
+        enum SGF {
+            AddStone(Stone),
+            Move(Stone),
+            PlayerName(Stone),
+            Unknown,
+        }
+
+        // TODO: Write an actual SGF parser instead of naively using regexes
         let re = Regex::new(r"(\w{1,2})\[(.+?)\]").expect("invalid regex");
 
-        for cap in re.captures_iter(&contents) {
-            let val = &cap[2].to_string();
+        // Parse captured regex matches into SGF properties
+        let properties = re.captures_iter(&contents).map(|cap| {
+            let property = match &cap[1] {
+                "B"  => SGF::Move(Stone::Black),
+                "W"  => SGF::Move(Stone::White),
+                "AB" => SGF::AddStone(Stone::Black),
+                "AW" => SGF::AddStone(Stone::White),
+                "PB" => SGF::PlayerName(Stone::Black),
+                "PW" => SGF::PlayerName(Stone::White),
+                _ => SGF::Unknown,
+            };
 
-            match &cap[1] {
-                "B" | "AB" | "W" | "AW" => {
-                    let (x, y) = Self::alpha_to_xy(val);
+            (property, cap[2].to_string())
+        });
 
-                    let stone = match &cap[1] {
-                        "B" | "AB" => Stone::Black,
-                        "W" | "AW" => Stone::White,
-                        _ => Stone::Empty,
-                    };
-
-                    // Manually assign stone to position for "add stone" instructions, otherwise
-                    // use `game.make_move` to make the move (which takes into account captures).
-                    match &cap[1] {
-                        "AB" | "AW" => { game.board[(x, y)] = stone },
-                        _ => { game.make_move(stone, x, y); },
+        for (prop, val) in properties {
+            match prop {
+                // Use `Game::make_move` to take into account captures.
+                SGF::Move(stone) => {
+                    let (x, y) = Self::alpha_to_xy(&val);
+                    game.make_move(stone, x, y);
+                },
+                // Manually assign stone to position.
+                SGF::AddStone(stone) => {
+                    game.board[Self::alpha_to_xy(&val)] = stone;
+                },
+                SGF::PlayerName(stone) => {
+                    if stone == Stone::Black {
+                        game.black_player = Some(val);
+                    } else {
+                        game.white_player = Some(val);
                     }
-                }
-                "PB" => {
-                    game.black_player = Some(val.to_string());
                 },
-                "PW" => {
-                    game.white_player = Some(val.to_string());
-                },
-                _ => {}
+                _ => {},
             }
         }
 
@@ -88,7 +104,7 @@ impl Game {
         }
 
         if let Some(ref b) = self.last_board {
-            if b.clone() == next_board {
+            if *b == next_board {
                 return false;
             }
         }
@@ -99,6 +115,8 @@ impl Game {
         true
     }
 
+    /// Maps "alphabetical coordinates" to `(x, y)` coordinates.
+    /// Ex. "ab" => (0, 1); "zz" => (25, 25)
     fn alpha_to_xy(alpha: &str) -> (usize, usize) {
         let mut chars = alpha.chars();
         let x = chars.next().expect("expected 2 characters");
